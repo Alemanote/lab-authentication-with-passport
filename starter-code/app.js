@@ -25,13 +25,19 @@ const flash = require("connect-flash");
 
 
 //enable sessions here
-
+app.use(session({
+secret:"passport-local-strategy",
+resave:true,
+saveUninitialized:true
+}
+))
 
 
 
 //initialize passport and session here
 
-
+app.use(passport.initialize());
+app.use(passport.session());
 
 
 
@@ -57,7 +63,32 @@ app.use('/', passportRouter);
 //passport code here
 
 
+passport.serializeUser((user, cb) => {
+  cb(null, user.id);
+});
 
+passport.deserializeUser((id, cb) => {
+  User.findOne({ "_id": id }, (err, user) => {
+    if (err) { return cb(err); }
+    cb(null, user);
+  });
+});
+
+passport.use(new LocalStrategy((username, password, next) => {
+  User.findOne({ username }, (err, user) => {
+    if (err) {
+      return next(err);
+    }
+    if (!user) {
+      return next(null, false, { message: "Incorrect username" });
+    }
+    if (!bcrypt.compareSync(password, user.password)) {
+      return next(null, false, { message: "Incorrect password" });
+    }
+
+    return next(null, user);
+  });
+}));
 
 
 
